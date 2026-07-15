@@ -16,6 +16,8 @@
     "dockerRegistryLoginSuccess": "Docker registry login succeeded.",
     "dockerRegistryLoginTimedOut": "Docker registry login timed out.",
     "compose": "Compose",
+    "collapseLeft": "Collapse sidebar",
+    "expandLeft": "Expand sidebar",
     "addFirstStackMsg": "Compose your first stack!",
     "stackName": "Stack Name",
     "deployStack": "Deploy",

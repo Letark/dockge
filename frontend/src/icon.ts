@@ -59,6 +59,8 @@ import {
     faChevronCircleDown,
     faSun,
     faMoon,
+    faAnglesLeft,
+    faAnglesRight,
 } from "@fortawesome/free-solid-svg-icons";
 
 library.add(
@@ -119,6 +121,8 @@ library.add(
     faChevronCircleDown,
     faSun,
     faMoon,
+    faAnglesLeft,
+    faAnglesRight,
 );
 
 export { FontAwesomeIcon };
