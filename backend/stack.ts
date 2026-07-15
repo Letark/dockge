@@ -625,6 +625,70 @@ export class Stack {
         }
     }
 
+    async inspectService(serviceName: string) {
+        let res = await childProcessAsync.spawn("docker", this.getComposeOptions("ps", "--format", "json", serviceName), {
+            cwd: this.path,
+            encoding: "utf-8",
+        });
+
+        if (!res.stdout) {
+            throw new Error("Service not found or not running");
+        }
+
+        // Get the container name from compose ps output
+        const lines = res.stdout.toString().trim().split("\n").filter(Boolean);
+        if (lines.length === 0) {
+            throw new Error("Service not found or not running");
+        }
+
+        const containerInfo = JSON.parse(lines[0]);
+        const containerName = containerInfo.Name;
+
+        // Run docker inspect on the container
+        let inspectRes = await childProcessAsync.spawn("docker", ["inspect", containerName], {
+            encoding: "utf-8",
+        });
+
+        if (!inspectRes.stdout) {
+            throw new Error("Failed to inspect container");
+        }
+
+        const inspectData = JSON.parse(inspectRes.stdout.toString());
+        if (!inspectData || inspectData.length === 0) {
+            throw new Error("No inspect data returned");
+        }
+
+        const container = inspectData[0];
+
+        // Return a curated subset of useful info
+        return {
+            id: container.Id?.substring(0, 12),
+            name: container.Name?.replace(/^\//, ""),
+            image: container.Config?.Image,
+            created: container.Created,
+            status: container.State?.Status,
+            startedAt: container.State?.StartedAt,
+            restartCount: container.RestartCount,
+            platform: container.Platform,
+            healthCheck: container.Config?.Healthcheck || null,
+            env: container.Config?.Env || [],
+            mounts: (container.Mounts || []).map((m: { Type: string; Source: string; Destination: string; Mode: string; RW: boolean }) => ({
+                type: m.Type,
+                source: m.Source,
+                destination: m.Destination,
+                mode: m.Mode,
+                rw: m.RW,
+            })),
+            networks: Object.entries(container.NetworkSettings?.Networks || {}).map(([name, net]: [string, any]) => ({
+                name,
+                ipAddress: net.IPAddress,
+                gateway: net.Gateway,
+                macAddress: net.MacAddress,
+            })),
+            ports: container.NetworkSettings?.Ports || {},
+        };
+    }
+
     async joinContainerTerminal(socket: DockgeSocket, serviceName: string, shell : string = "sh", index: number = 0) {
         const terminalName = getContainerExecTerminalName(socket.endpoint, this.name, serviceName, index);
         let terminal = Terminal.getTerminal(terminalName);

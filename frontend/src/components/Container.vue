@@ -22,7 +22,7 @@
                             Bash
                         </router-link>
                         <button
-                            v-if="serviceCount > 1 && !isEditMode && status !== 'running' && status !== 'healthy'"
+                            v-if="!isEditMode && status !== 'running' && status !== 'healthy'"
                             class="btn btn-primary"
                             :disabled="processing"
                             @click="startService"
@@ -31,7 +31,7 @@
                             {{ $t("startStack") }}
                         </button>
                         <button
-                            v-if="serviceCount > 1 && !isEditMode && (status === 'running' || status === 'healthy' || status === 'unhealthy')"
+                            v-if="!isEditMode && (status === 'running' || status === 'healthy' || status === 'unhealthy')"
                             class="btn btn-normal"
                             :disabled="processing"
                             @click="restartService"
@@ -40,7 +40,7 @@
                             {{ $t("restartStack") }}
                         </button>
                         <button
-                            v-if="serviceCount > 1 && !isEditMode && (status === 'running' || status === 'healthy' || status === 'unhealthy')"
+                            v-if="!isEditMode && (status === 'running' || status === 'healthy' || status === 'unhealthy')"
                             class="btn btn-normal"
                             :disabled="processing"
                             @click="stopService"
