@@ -74,7 +74,10 @@
                         {{ $t('memoryAbbreviated') }}: {{ statsInstances[0].MemUsage }}
                     </div>
                 </template>
-                <div class="d-flex flex-grow-1 justify-content-end">
+                <div class="d-flex flex-grow-1 justify-content-end gap-1">
+                    <button class="btn btn-sm btn-normal" :title="$t('details')" @click="toggleDetails">
+                        <font-awesome-icon icon="info-circle" />
+                    </button>
                     <button class="btn btn-sm btn-normal" @click="expandedStats = !expandedStats">
                         <font-awesome-icon :icon="expandedStats ? 'chevron-up' : 'chevron-down'" />
                     </button>
@@ -90,6 +93,91 @@
                 </div>
             </transition>
         </div>
+        <div v-else-if="!isEditMode" class="mt-2">
+            <div class="d-flex justify-content-end">
+                <button class="btn btn-sm btn-normal" :title="$t('details')" @click="toggleDetails">
+                    <font-awesome-icon icon="info-circle" />
+                </button>
+            </div>
+        </div>
+
+        <!-- Container Detail Panel -->
+        <transition name="slide-fade" appear>
+            <div v-if="showDetails && !isEditMode" class="container-details mt-3">
+                <div v-if="inspectLoading" class="text-center py-3">
+                    <font-awesome-icon icon="spinner" spin /> {{ $t("loading") }}
+                </div>
+                <div v-else-if="inspectData" class="detail-grid">
+                    <!-- Container ID & Created -->
+                    <div class="detail-section">
+                        <div class="detail-row">
+                            <span class="detail-label">{{ $t("containerID") }}</span>
+                            <code>{{ inspectData.id }}</code>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">{{ $t("created") }}</span>
+                            <span>{{ formatDate(inspectData.created) }}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">{{ $t("started") }}</span>
+                            <span>{{ formatDate(inspectData.startedAt) }}</span>
+                        </div>
+                        <div v-if="inspectData.restartCount > 0" class="detail-row">
+                            <span class="detail-label">{{ $t("restarts") }}</span>
+                            <span>{{ inspectData.restartCount }}</span>
+                        </div>
+                    </div>
+
+                    <!-- Networks -->
+                    <div v-if="inspectData.networks && inspectData.networks.length > 0" class="detail-section">
+                        <h6>{{ $tc("network", 2) }}</h6>
+                        <div v-for="net in inspectData.networks" :key="net.name" class="detail-row">
+                            <span class="detail-label">{{ net.name }}</span>
+                            <code>{{ net.ipAddress }}</code>
+                            <span v-if="net.gateway" class="text-muted ms-2">(gw: {{ net.gateway }})</span>
+                        </div>
+                    </div>
+
+                    <!-- Mounts -->
+                    <div v-if="inspectData.mounts && inspectData.mounts.length > 0" class="detail-section">
+                        <h6>{{ $tc("volume", 2) }}</h6>
+                        <div v-for="(mount, idx) in inspectData.mounts" :key="idx" class="detail-row mount-row">
+                            <code class="mount-source">{{ mount.source }}</code>
+                            <span class="mount-arrow">→</span>
+                            <code>{{ mount.destination }}</code>
+                            <span class="badge bg-secondary ms-1">{{ mount.type }}</span>
+                            <span v-if="!mount.rw" class="badge bg-warning ms-1">ro</span>
+                        </div>
+                    </div>
+
+                    <!-- Health Check -->
+                    <div v-if="inspectData.healthCheck" class="detail-section">
+                        <h6>{{ $t("healthCheck") }}</h6>
+                        <div class="detail-row">
+                            <code>{{ inspectData.healthCheck.Test?.join(' ') }}</code>
+                        </div>
+                    </div>
+
+                    <!-- Environment Variables -->
+                    <div v-if="inspectData.env && inspectData.env.length > 0" class="detail-section">
+                        <h6>
+                            {{ $tc("environmentVariable", 2) }}
+                            <button class="btn btn-sm btn-normal ms-2" @click="showEnv = !showEnv">
+                                <font-awesome-icon :icon="showEnv ? 'eye-slash' : 'eye'" />
+                            </button>
+                        </h6>
+                        <div v-if="showEnv" class="env-list">
+                            <div v-for="(envVar, idx) in inspectData.env" :key="idx" class="detail-row">
+                                <code>{{ envVar }}</code>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div v-else-if="inspectError" class="text-danger">
+                    {{ inspectError }}
+                </div>
+            </div>
+        </transition>
 
         <transition name="slide-fade" appear>
             <div v-if="isEditMode && showConfig" class="config mt-3">
@@ -231,6 +319,11 @@ export default defineComponent({
         return {
             showConfig: false,
             expandedStats: false,
+            showDetails: false,
+            showEnv: false,
+            inspectData: null,
+            inspectLoading: false,
+            inspectError: null,
         };
     },
     computed: {
@@ -377,7 +470,36 @@ export default defineComponent({
         },
         restartService() {
             this.$emit("restart-service", this.name);
-        }
+        },
+        toggleDetails() {
+            this.showDetails = !this.showDetails;
+            if (this.showDetails && !this.inspectData) {
+                this.fetchInspect();
+            }
+        },
+        fetchInspect() {
+            this.inspectLoading = true;
+            this.inspectError = null;
+            this.$root.emitAgent(this.endpoint, "inspectContainer", this.stackName, this.name, (res) => {
+                this.inspectLoading = false;
+                if (res.ok) {
+                    this.inspectData = res.data;
+                } else {
+                    this.inspectError = res.msg || "Failed to inspect container";
+                }
+            });
+        },
+        formatDate(dateStr) {
+            if (!dateStr) {
+                return "N/A";
+            }
+            try {
+                const d = new Date(dateStr);
+                return d.toLocaleString();
+            } catch (e) {
+                return dateStr;
+            }
+        },
 
     }
 });
@@ -407,6 +529,83 @@ export default defineComponent({
     .stats {
         font-size: 0.8rem;
         color: #6c757d;
+    }
+}
+
+.container-details {
+    border-top: 1px solid #dee2e6;
+    padding-top: 12px;
+
+    .dark & {
+        border-top-color: $dark-border-color;
+    }
+}
+
+.detail-section {
+    margin-bottom: 12px;
+
+    h6 {
+        font-size: 0.8rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #6c757d;
+        margin-bottom: 6px;
+    }
+}
+
+.detail-row {
+    font-size: 0.8rem;
+    padding: 2px 0;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 4px;
+
+    code {
+        font-size: 0.75rem;
+        padding: 1px 5px;
+        background-color: rgba(0, 0, 0, 0.05);
+        border-radius: 3px;
+
+        .dark & {
+            background-color: rgba(255, 255, 255, 0.08);
+        }
+    }
+}
+
+.detail-label {
+    font-weight: 500;
+    min-width: 80px;
+    color: #6c757d;
+}
+
+.mount-row {
+    .mount-source {
+        max-width: 200px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .mount-arrow {
+        color: #6c757d;
+        margin: 0 2px;
+    }
+}
+
+.env-list {
+    max-height: 200px;
+    overflow-y: auto;
+    padding: 4px;
+    background: rgba(0, 0, 0, 0.02);
+    border-radius: 6px;
+
+    .dark & {
+        background: rgba(255, 255, 255, 0.03);
+    }
+
+    .detail-row code {
+        word-break: break-all;
     }
 }
 </style>
