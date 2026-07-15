@@ -12,6 +12,7 @@ import {
     CREATED_STACK,
     EXITED, getCombinedTerminalName,
     getComposeTerminalName, getContainerExecTerminalName,
+    getServiceTerminalName,
     PAUSED,
     PROGRESS_TERMINAL_ROWS,
     RUNNING, TERMINAL_ROWS,
@@ -600,6 +601,24 @@ export class Stack {
 
     async leaveCombinedTerminal(socket: DockgeSocket) {
         const terminalName = getCombinedTerminalName(socket.endpoint, this.name);
+        const terminal = Terminal.getTerminal(terminalName);
+        if (terminal) {
+            terminal.leave(socket);
+        }
+    }
+
+    async joinServiceTerminal(socket: DockgeSocket, serviceName: string) {
+        const terminalName = getServiceTerminalName(socket.endpoint, this.name, serviceName);
+        const terminal = Terminal.getOrCreateTerminal(this.server, terminalName, "docker", this.getComposeOptions("logs", "-f", "--tail", "100", serviceName), this.path);
+        terminal.enableKeepAlive = true;
+        terminal.rows = COMBINED_TERMINAL_ROWS;
+        terminal.cols = COMBINED_TERMINAL_COLS;
+        terminal.join(socket);
+        terminal.start();
+    }
+
+    async leaveServiceTerminal(socket: DockgeSocket, serviceName: string) {
+        const terminalName = getServiceTerminalName(socket.endpoint, this.name, serviceName);
         const terminal = Terminal.getTerminal(terminalName);
         if (terminal) {
             terminal.leave(socket);

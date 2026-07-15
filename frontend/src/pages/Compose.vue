@@ -162,11 +162,42 @@
 
                     <!-- Combined Terminal Output -->
                     <div v-show="!isEditMode">
-                        <h4 class="mb-3">{{ $t("terminal") }}</h4>
+                        <div class="d-flex align-items-center mb-3">
+                            <h4 class="mb-0 me-3">{{ $t("terminal") }}</h4>
+                            <div class="log-filter-pills">
+                                <button
+                                    class="btn btn-sm me-1"
+                                    :class="logFilter === '' ? 'btn-primary' : 'btn-outline-normal'"
+                                    @click="setLogFilter('')"
+                                >
+                                    {{ $t("all") }}
+                                </button>
+                                <button
+                                    v-for="(service, name) in jsonConfig.services"
+                                    :key="name"
+                                    class="btn btn-sm me-1"
+                                    :class="logFilter === name ? 'btn-primary' : 'btn-outline-normal'"
+                                    @click="setLogFilter(name)"
+                                >
+                                    {{ name }}
+                                </button>
+                            </div>
+                        </div>
                         <Terminal
+                            v-show="logFilter === ''"
                             ref="combinedTerminal"
                             class="mb-3 terminal"
                             :name="combinedTerminalName"
+                            :endpoint="endpoint"
+                            :rows="combinedTerminalRows"
+                            :cols="combinedTerminalCols"
+                            style="height: 315px;"
+                        ></Terminal>
+                        <Terminal
+                            v-show="logFilter !== ''"
+                            ref="serviceTerminal"
+                            class="mb-3 terminal"
+                            :name="serviceTerminalName"
                             :endpoint="endpoint"
                             :rows="combinedTerminalRows"
                             :cols="combinedTerminalCols"
@@ -268,6 +299,7 @@ import {
     copyYAMLComments, envsubstYAML,
     getCombinedTerminalName,
     getComposeTerminalName,
+    getServiceTerminalName,
     PAUSED,
     PROGRESS_TERMINAL_ROWS,
     RUNNING
@@ -353,6 +385,7 @@ export default {
             newContainerName: "",
             stopServiceStatusTimeout: false,
             stopDockerStatsTimeout: false,
+            logFilter: "",
         };
     },
     computed: {
@@ -423,6 +456,13 @@ export default {
                 return "";
             }
             return getCombinedTerminalName(this.endpoint, this.stack.name);
+        },
+
+        serviceTerminalName() {
+            if (!this.stack.name || !this.logFilter) {
+                return "";
+            }
+            return getServiceTerminalName(this.endpoint, this.stack.name, this.logFilter);
         },
 
         networks() {
@@ -743,6 +783,33 @@ export default {
             });
         },
 
+        setLogFilter(serviceName) {
+            const previousFilter = this.logFilter;
+            this.logFilter = serviceName;
+
+            if (serviceName === "") {
+                // Switching back to "All" — leave the service terminal if one was active
+                if (previousFilter && this.$refs.serviceTerminal) {
+                    this.$root.emitAgent(this.endpoint, "leaveServiceTerminal", this.stack.name, previousFilter, () => {});
+                }
+            } else {
+                // Leave previous service terminal if switching between services
+                if (previousFilter && previousFilter !== serviceName) {
+                    this.$root.emitAgent(this.endpoint, "leaveServiceTerminal", this.stack.name, previousFilter, () => {});
+                }
+                // Join the new service terminal — it will bind via the Terminal component's name prop reactivity
+                this.$nextTick(() => {
+                    if (this.$refs.serviceTerminal) {
+                        this.$root.emitAgent(this.endpoint, "joinServiceTerminal", this.stack.name, serviceName, (res) => {
+                            if (res.ok) {
+                                this.$refs.serviceTerminal.bind(this.endpoint, this.serviceTerminalName);
+                            }
+                        });
+                    }
+                });
+            }
+        },
+
         discardStack() {
             this.loadStack();
             this.isEditMode = false;
@@ -882,6 +949,13 @@ export default {
 
 .terminal {
     height: 200px;
+}
+
+.log-filter-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    align-items: center;
 }
 
 .editor-box {

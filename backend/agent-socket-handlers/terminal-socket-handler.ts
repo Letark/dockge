@@ -165,6 +165,52 @@ export class TerminalSocketHandler extends AgentSocketHandler {
             }
         });
 
+        // Join Service Terminal (filtered logs for a single service)
+        agentSocket.on("joinServiceTerminal", async (stackName : unknown, serviceName : unknown, callback) => {
+            try {
+                checkLogin(socket);
+
+                if (typeof(stackName) !== "string") {
+                    throw new ValidationError("Stack name must be a string.");
+                }
+                if (typeof(serviceName) !== "string") {
+                    throw new ValidationError("Service name must be a string.");
+                }
+
+                const stack = await Stack.getStack(server, stackName);
+                await stack.joinServiceTerminal(socket, serviceName);
+
+                callbackResult({
+                    ok: true,
+                }, callback);
+            } catch (e) {
+                callbackError(e, callback);
+            }
+        });
+
+        // Leave Service Terminal
+        agentSocket.on("leaveServiceTerminal", async (stackName : unknown, serviceName : unknown, callback) => {
+            try {
+                checkLogin(socket);
+
+                if (typeof(stackName) !== "string") {
+                    throw new ValidationError("Stack name must be a string.");
+                }
+                if (typeof(serviceName) !== "string") {
+                    throw new ValidationError("Service name must be a string.");
+                }
+
+                const stack = await Stack.getStack(server, stackName);
+                await stack.leaveServiceTerminal(socket, serviceName);
+
+                callbackResult({
+                    ok: true,
+                }, callback);
+            } catch (e) {
+                callbackError(e, callback);
+            }
+        });
+
         // Resize Terminal
         agentSocket.on("terminalResize", async (terminalName: unknown, rows: unknown, cols: unknown) => {
             log.info("terminalResize", `Terminal: ${terminalName}`);

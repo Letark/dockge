@@ -18,6 +18,7 @@
     "compose": "Compose",
     "collapseLeft": "Collapse sidebar",
     "expandLeft": "Expand sidebar",
+    "all": "All",
     "addFirstStackMsg": "Compose your first stack!",
     "stackName": "Stack Name",
     "deployStack": "Deploy",
