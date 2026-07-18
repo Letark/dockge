@@ -608,4 +608,32 @@ export default defineComponent({
         word-break: break-all;
     }
 }
+
+@media (max-width: 767px) {
+    .container {
+        .row {
+            flex-direction: column;
+
+            .col-5, .col-7 {
+                width: 100%;
+            }
+        }
+
+        .function {
+            justify-content: start;
+            margin-top: 8px;
+
+            .btn-group {
+                flex-wrap: wrap;
+                gap: 4px;
+
+                .btn {
+                    font-size: 0.75rem;
+                    padding: 4px 8px;
+                    border-radius: 6px !important;
+                }
+            }
+        }
+    }
+}
 </style>

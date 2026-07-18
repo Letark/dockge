@@ -129,7 +129,7 @@
                         </button>
                     </div>
 
-                    <div ref="containerList">
+                    <div ref="containerList" class="container-list">
                         <Container
                             v-for="(service, name) in jsonConfig.services"
                             :key="name"
@@ -966,5 +966,37 @@ export default {
 .agent-name {
     font-size: 13px;
     color: $dark-font-color3;
+}
+
+@media (max-width: 767px) {
+    .btn-group {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+
+        .btn {
+            font-size: 0.8rem;
+            padding: 6px 10px;
+            border-radius: 6px !important;
+        }
+    }
+
+    .btn-danger {
+        font-size: 0.8rem;
+        padding: 6px 10px;
+        margin-top: 4px;
+    }
+
+    .container-list {
+        max-height: 50vh;
+        overflow-y: auto;
+        border-bottom: 1px solid #dee2e6;
+        margin-bottom: 12px;
+        padding-bottom: 8px;
+
+        .dark & {
+            border-bottom-color: $dark-border-color;
+        }
+    }
 }
 </style>
