@@ -194,8 +194,9 @@
                             style="height: 315px;"
                         ></Terminal>
                         <Terminal
-                            v-show="logFilter !== ''"
+                            v-if="logFilter !== ''"
                             ref="serviceTerminal"
+                            :key="serviceTerminalName"
                             class="mb-3 terminal"
                             :name="serviceTerminalName"
                             :endpoint="endpoint"
@@ -785,26 +786,26 @@ export default {
 
         setLogFilter(serviceName) {
             const previousFilter = this.logFilter;
-            this.logFilter = serviceName;
 
             if (serviceName === "") {
                 // Switching back to "All" — leave the service terminal if one was active
-                if (previousFilter && this.$refs.serviceTerminal) {
+                if (previousFilter) {
                     this.$root.emitAgent(this.endpoint, "leaveServiceTerminal", this.stack.name, previousFilter, () => {});
                 }
+                this.logFilter = serviceName;
             } else {
                 // Leave previous service terminal if switching between services
                 if (previousFilter && previousFilter !== serviceName) {
                     this.$root.emitAgent(this.endpoint, "leaveServiceTerminal", this.stack.name, previousFilter, () => {});
                 }
-                // Join the new service terminal — it will bind via the Terminal component's name prop reactivity
-                this.$nextTick(() => {
-                    if (this.$refs.serviceTerminal) {
-                        this.$root.emitAgent(this.endpoint, "joinServiceTerminal", this.stack.name, serviceName, (res) => {
-                            if (res.ok) {
-                                this.$refs.serviceTerminal.bind(this.endpoint, this.serviceTerminalName);
-                            }
-                        });
+                // Ask backend to create the service terminal FIRST
+                this.$root.emitAgent(this.endpoint, "joinServiceTerminal", this.stack.name, serviceName, (res) => {
+                    if (res.ok) {
+                        // Now set the filter which triggers v-if to mount the Terminal component
+                        // Terminal's mounted() will call bind() which calls terminalJoin to get the buffer
+                        this.logFilter = serviceName;
+                    } else {
+                        this.$root.toastRes(res);
                     }
                 });
             }
@@ -985,18 +986,6 @@ export default {
         font-size: 0.8rem;
         padding: 6px 10px;
         margin-top: 4px;
-    }
-
-    .container-list {
-        max-height: 50vh;
-        overflow-y: auto;
-        border-bottom: 1px solid #dee2e6;
-        margin-bottom: 12px;
-        padding-bottom: 8px;
-
-        .dark & {
-            border-bottom-color: $dark-border-color;
-        }
     }
 }
 </style>

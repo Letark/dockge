@@ -61,6 +61,7 @@ import {
     faMoon,
     faAnglesLeft,
     faAnglesRight,
+    faChevronLeft,
 } from "@fortawesome/free-solid-svg-icons";
 
 library.add(
@@ -123,6 +124,7 @@ library.add(
     faMoon,
     faAnglesLeft,
     faAnglesRight,
+    faChevronLeft,
 );
 
 export { FontAwesomeIcon };

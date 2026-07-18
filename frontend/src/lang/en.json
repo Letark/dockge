@@ -18,6 +18,7 @@
     "compose": "Compose",
     "collapseLeft": "Collapse sidebar",
     "expandLeft": "Expand sidebar",
+    "backToList": "Back",
     "all": "All",
     "details": "Details",
     "containerID": "Container ID",

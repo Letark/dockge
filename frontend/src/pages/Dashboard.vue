@@ -1,7 +1,7 @@
 <template>
     <div class="container-fluid">
         <div class="dashboard-row">
-            <!-- Left Column (Stack List) -->
+            <!-- Left Column (Stack List) - Desktop -->
             <div v-if="!$root.isMobile" class="col-left" :class="{ collapsed: leftCollapsed }">
                 <div v-if="!leftCollapsed" class="col-left-content">
                     <div class="d-flex align-items-center mb-3">
@@ -22,8 +22,26 @@
                 </div>
             </div>
 
-            <!-- Right Column (Content) -->
-            <div ref="container" class="col-right" :class="{ expanded: leftCollapsed && !$root.isMobile }">
+            <!-- Mobile: Show stack list OR detail, not both -->
+            <div v-if="$root.isMobile" class="col-mobile">
+                <!-- Stack list view (shown when on home route) -->
+                <div v-if="showMobileList">
+                    <div class="d-flex align-items-center mb-3">
+                        <router-link to="/compose" class="btn btn-primary"><font-awesome-icon icon="plus" /> {{ $t("compose") }}</router-link>
+                    </div>
+                    <StackList />
+                </div>
+                <!-- Detail view (shown when viewing a stack) -->
+                <div v-else>
+                    <button class="btn btn-normal btn-sm mb-3" @click="goBackToList">
+                        <font-awesome-icon icon="chevron-left" /> {{ $t("backToList") }}
+                    </button>
+                    <router-view :key="$route.fullPath" :calculatedHeight="height" />
+                </div>
+            </div>
+
+            <!-- Right Column (Content) - Desktop -->
+            <div v-if="!$root.isMobile" ref="container" class="col-right" :class="{ expanded: leftCollapsed }">
                 <router-view :key="$route.fullPath" :calculatedHeight="height" />
             </div>
         </div>
@@ -44,10 +62,15 @@ export default {
             leftCollapsed: localStorage.getItem("leftColumnCollapsed") === "true",
         };
     },
+    computed: {
+        showMobileList() {
+            // Show the stack list on mobile when we're on the home/root route
+            return this.$route.path === "/" || this.$route.name === "DashboardHome";
+        },
+    },
     watch: {
         leftCollapsed(val) {
             localStorage.setItem("leftColumnCollapsed", val ? "true" : "false");
-            // Recalculate height after transition
             this.$nextTick(() => {
                 setTimeout(() => {
                     if (this.$refs.container) {
@@ -58,11 +81,16 @@ export default {
         },
     },
     mounted() {
-        this.height = this.$refs.container.offsetHeight;
+        if (this.$refs.container) {
+            this.height = this.$refs.container.offsetHeight;
+        }
     },
     methods: {
         toggleLeft() {
             this.leftCollapsed = !this.leftCollapsed;
+        },
+        goBackToList() {
+            this.$router.push("/");
         },
     },
 };
@@ -119,6 +147,10 @@ export default {
     &.expanded {
         flex: 1;
     }
+}
+
+.col-mobile {
+    width: 100%;
 }
 
 .btn-collapse,
