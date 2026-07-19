@@ -129,7 +129,7 @@
                         </button>
                     </div>
 
-                    <div ref="containerList" class="container-list">
+                    <div ref="containerList">
                         <Container
                             v-for="(service, name) in jsonConfig.services"
                             :key="name"
@@ -162,9 +162,9 @@
 
                     <!-- Combined Terminal Output -->
                     <div v-show="!isEditMode">
-                        <div class="d-flex align-items-center mb-3">
+                        <div class="d-flex align-items-center mb-3 flex-wrap gap-2">
                             <h4 class="mb-0 me-3">{{ $t("terminal") }}</h4>
-                            <div class="log-filter-pills">
+                            <div v-if="jsonConfig.services && Object.keys(jsonConfig.services).length > 1" class="log-filter-pills">
                                 <button
                                     class="btn btn-sm me-1"
                                     :class="logFilter === '' ? 'btn-primary' : 'btn-outline-normal'"
